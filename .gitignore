@@ -1,1 +1,7 @@
-*objs*
+# Ignore files with no extensions (executables)
+*
+!/**/
+!*.*
+
+# Object files
+*.o
