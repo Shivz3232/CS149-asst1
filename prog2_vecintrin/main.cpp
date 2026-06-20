@@ -21,7 +21,7 @@ float arraySumVector(float* values, int N);
 bool verifyResult(float* values, int* exponents, float* output, float* gold, int N);
 
 int main(int argc, char * argv[]) {
-  int N = 16;
+  int N = 18;
   bool printLog = false;
 
   // parse commandline options ////////////////////////////////////////////
@@ -63,8 +63,8 @@ int main(int argc, char * argv[]) {
   clampedExpSerial(values, exponents, gold, N);
   clampedExpVector(values, exponents, output, N);
 
-  //absSerial(values, gold, N);
-  //absVector(values, output, N);
+  // absSerial(values, gold, N);
+  // absVector(values, output, N);
 
   printf("\e[1;31mCLAMPED EXPONENT\e[0m (required) \n");
   bool clampedCorrect = verifyResult(values, exponents, output, gold, N);
@@ -249,7 +249,105 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
   // Your solution should work for any value of
   // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
   //
-  
+
+  __cs149_vec_int x_exp;
+  __cs149_vec_float x_values, result, threshold;
+
+  __cs149_vec_int zero = _cs149_vset_int(0);
+  __cs149_vec_int one = _cs149_vset_int(1);
+
+  __cs149_mask maskAll, maskTmp, maskMultiply;
+
+  maskAll = _cs149_init_ones();
+  threshold = _cs149_vset_float(9.999999f);
+
+  int remainder = N % VECTOR_WIDTH;
+
+  for (int i = 0; i < N - remainder; i += VECTOR_WIDTH) {
+    // Init exponent and value vectors
+    _cs149_vload_int(x_exp, exponents + i, maskAll);
+    _cs149_vload_float(x_values, values + i, maskAll);
+
+    // Init result vector to multiplicative identity (1)
+    result = _cs149_vset_float(1.0f);
+
+    maskMultiply = _cs149_init_ones(0);
+
+    // Turn on lanes with exp > 0
+    _cs149_vgt_int(maskMultiply, x_exp, zero, maskAll);
+
+    int activeValues = _cs149_cntbits(maskMultiply);
+    while (activeValues > 0) {
+
+      // Multiply Values
+      _cs149_vmult_float(result, result, x_values, maskMultiply);
+
+      // Reduce exponents by 1
+      _cs149_vsub_int(x_exp, x_exp, one, maskMultiply);
+
+      // Deactivate lanes where result > threshold
+      maskTmp = _cs149_init_ones(0);
+      _cs149_vgt_float(maskTmp, result, threshold, maskMultiply);
+      _cs149_vmove_float(result, threshold, maskTmp);
+      maskTmp = _cs149_mask_not(maskTmp);
+      maskMultiply = _cs149_mask_and(maskMultiply, maskTmp);
+
+      // Deactivate lanes where exponent == 0
+      maskTmp = _cs149_init_ones(0);
+      _cs149_veq_int(maskTmp, x_exp, zero, maskMultiply);
+      maskTmp = _cs149_mask_not(maskTmp);
+      maskMultiply = _cs149_mask_and(maskMultiply, maskTmp);
+
+      // Update active values
+      activeValues = _cs149_cntbits(maskMultiply);
+
+    }
+
+    _cs149_vstore_float(output+i, result, maskAll);
+
+  }
+
+  if (remainder > 0) {
+    maskAll = _cs149_init_ones(remainder);
+
+    _cs149_vload_int(x_exp, exponents + N - remainder, maskAll);
+    _cs149_vload_float(x_values, values + N - remainder, maskAll);
+
+    // Init result vector to multiplicative identity (1)
+    result = _cs149_vset_float(1.0f);
+
+    maskMultiply = _cs149_init_ones(remainder);
+
+    _cs149_vgt_int(maskMultiply, x_exp, zero, maskAll);
+
+    int activeValues = _cs149_cntbits(maskMultiply);
+    while (activeValues > 0) {
+
+      // Multiply Values
+      _cs149_vmult_float(result, result, x_values, maskMultiply);
+
+      // Reduce exponents by 1
+      _cs149_vsub_int(x_exp, x_exp, one, maskMultiply);
+
+      // Deactivate lanes where result > threshold
+      maskTmp = _cs149_init_ones(0);
+      _cs149_vgt_float(maskTmp, result, threshold, maskMultiply);
+      _cs149_vmove_float(result, threshold, maskTmp);
+      maskTmp = _cs149_mask_not(maskTmp);
+      maskMultiply = _cs149_mask_and(maskMultiply, maskTmp);
+
+      // Deactivate lanes where exponent == 0
+      maskTmp = _cs149_init_ones(0);
+      _cs149_veq_int(maskTmp, x_exp, zero, maskMultiply);
+      maskTmp = _cs149_mask_not(maskTmp);
+      maskMultiply = _cs149_mask_and(maskMultiply, maskTmp);
+
+      // Update active values
+      activeValues = _cs149_cntbits(maskMultiply);
+    }
+
+    _cs149_vstore_float(output + N - remainder, result, maskAll);
+  }
 }
 
 // returns the sum of all elements in values
@@ -266,15 +364,14 @@ float arraySumSerial(float* values, int N) {
 // You can assume N is a multiple of VECTOR_WIDTH
 // You can assume VECTOR_WIDTH is a power of 2
 float arraySumVector(float* values, int N) {
-  
+
   //
   // CS149 STUDENTS TODO: Implement your vectorized version of arraySumSerial here
   //
-  
+
   for (int i=0; i<N; i+=VECTOR_WIDTH) {
 
   }
 
   return 0.0;
 }
-
