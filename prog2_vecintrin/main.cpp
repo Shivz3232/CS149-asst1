@@ -250,6 +250,8 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
   // Your solution should work for any value of
   // N and VECTOR_WIDTH, not just when VECTOR_WIDTH divides N
   //
+  // Personal Note: Sorting based on exponents before hand will help group similar exponents together.
+  // Avoiding exponent vectors such as [9 1 1 1], where most cycles are wasted.
 
   __cs149_vec_int x_exp;
   __cs149_vec_float x_values, result, threshold;
@@ -264,7 +266,12 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
 
   int remainder = N % VECTOR_WIDTH;
 
-  for (int i = 0; i < N - remainder; i += VECTOR_WIDTH) {
+  for (int i = 0; i < N; i += VECTOR_WIDTH) {
+
+    if (i == N - remainder) {
+      maskAll = _cs149_init_ones(remainder);
+    }
+
     // Init exponent and value vectors
     _cs149_vload_int(x_exp, exponents + i, maskAll);
     _cs149_vload_float(x_values, values + i, maskAll);
@@ -306,48 +313,6 @@ void clampedExpVector(float* values, int* exponents, float* output, int N) {
 
     _cs149_vstore_float(output+i, result, maskAll);
 
-  }
-
-  if (remainder > 0) {
-    maskAll = _cs149_init_ones(remainder);
-
-    _cs149_vload_int(x_exp, exponents + N - remainder, maskAll);
-    _cs149_vload_float(x_values, values + N - remainder, maskAll);
-
-    // Init result vector to multiplicative identity (1)
-    result = _cs149_vset_float(1.0f);
-
-    maskMultiply = _cs149_init_ones(remainder);
-
-    _cs149_vgt_int(maskMultiply, x_exp, zero, maskAll);
-
-    int activeValues = _cs149_cntbits(maskMultiply);
-    while (activeValues > 0) {
-
-      // Multiply Values
-      _cs149_vmult_float(result, result, x_values, maskMultiply);
-
-      // Reduce exponents by 1
-      _cs149_vsub_int(x_exp, x_exp, one, maskMultiply);
-
-      // Deactivate lanes where result > threshold
-      maskTmp = _cs149_init_ones(0);
-      _cs149_vgt_float(maskTmp, result, threshold, maskMultiply);
-      _cs149_vmove_float(result, threshold, maskTmp);
-      maskTmp = _cs149_mask_not(maskTmp);
-      maskMultiply = _cs149_mask_and(maskMultiply, maskTmp);
-
-      // Deactivate lanes where exponent == 0
-      maskTmp = _cs149_init_ones(0);
-      _cs149_veq_int(maskTmp, x_exp, zero, maskMultiply);
-      maskTmp = _cs149_mask_not(maskTmp);
-      maskMultiply = _cs149_mask_and(maskMultiply, maskTmp);
-
-      // Update active values
-      activeValues = _cs149_cntbits(maskMultiply);
-    }
-
-    _cs149_vstore_float(output + N - remainder, result, maskAll);
   }
 }
 
