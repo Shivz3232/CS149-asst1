@@ -21,6 +21,7 @@ float arraySumVector(float* values, int N);
 bool verifyResult(float* values, int* exponents, float* output, float* gold, int N);
 
 int main(int argc, char * argv[]) {
+  // int N = 16; // For Array Sum
   int N = 18;
   bool printLog = false;
 
@@ -368,10 +369,29 @@ float arraySumVector(float* values, int N) {
   //
   // CS149 STUDENTS TODO: Implement your vectorized version of arraySumSerial here
   //
+  __cs149_vec_float x;
+  __cs149_vec_float result_vec = _cs149_vset_float(0.0f);
 
+  __cs149_mask maskAll = _cs149_init_ones();
+  __cs149_mask firstHalf = _cs149_init_ones(VECTOR_WIDTH / 2);
+
+  int n = log2(VECTOR_WIDTH);
   for (int i=0; i<N; i+=VECTOR_WIDTH) {
-
+    _cs149_vload_float(x, values + i, maskAll);
+    _cs149_hadd_float(x, x);
+    _cs149_interleave_float(x, x);
+    _cs149_vadd_float(result_vec, result_vec, x, firstHalf);
   }
 
-  return 0.0;
+  float* result = new float[VECTOR_WIDTH / 2];
+  _cs149_vstore_float(result, result_vec, firstHalf);
+
+  float sum = 0.0f;
+  for (int i = 0; i < VECTOR_WIDTH / 2; i++) {
+    sum += result[i];
+  }
+
+  delete [] result;
+
+  return sum;
 }
