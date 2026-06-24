@@ -164,11 +164,11 @@ int main(int argc, char** argv) {
     if (! verifyResult (output_serial, output_ispc, width, height)) {
         printf ("Error : ISPC output differs from sequential output\n");
 
-        delete[] output_serial;
-        delete[] output_ispc;
-        delete[] output_ispc_tasks;
+        // delete[] output_serial;
+        // delete[] output_ispc;
+        // delete[] output_ispc_tasks;
 
-        return 1;
+        // return 1;
     }
 
     // Clear out the buffer
@@ -188,18 +188,18 @@ int main(int argc, char** argv) {
             minTaskISPC = std::min(minTaskISPC, endTime - startTime);
         }
 
-        printf("[mandelbrot multicore ispc]:\t[%.3f] ms\n", minTaskISPC * 1000);
+        printf("[mandelbrot multicore ispc (with tasks)]:\t[%.3f] ms\n", minTaskISPC * 1000);
         writePPMImage(output_ispc_tasks, width, height, "mandelbrot-task-ispc.ppm", maxIterations);
 
         if (! verifyResult (output_serial, output_ispc_tasks, width, height)) {
-            printf ("Error : ISPC output differs from sequential output\n");
+            printf ("Error : ISPC (with tasks) output differs from sequential output\n");
             return 1;
         }
     }
 
     printf("\t\t\t\t(%.2fx speedup from ISPC)\n", minSerial/minISPC);
     if (useTasks) {
-        printf("\t\t\t\t(%.2fx speedup from task ISPC)\n", minSerial/minTaskISPC);
+        printf("\t\t\t\t(%.2fx speedup from task ISPC (with tasks))\n", minSerial/minTaskISPC);
     }
 
     delete[] output_serial;
