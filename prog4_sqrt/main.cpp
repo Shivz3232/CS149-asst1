@@ -32,14 +32,27 @@ int main() {
         // TODO: CS149 students.  Attempt to change the values in the
         // array here to meet the instructions in the handout: we want
         // to you generate best and worse-case speedups
-        
+
         // starter code populates array with random input values
         values[i] = .001f + 2.998f * static_cast<float>(rand()) / RAND_MAX;
+
+        // Q2 - Random values seem to be already showcasing maximum speedup.
+
+        // Q3 - Maximizing local divergence to minimize speedup
+        // if (i % 8 == 0) {
+        //     values[i] = 2.999;
+        // } else {
+        //     values[i] = 1;
+        // }
     }
 
     // generate a gold version to check results
     for (unsigned int i=0; i<N; i++)
         gold[i] = sqrt(values[i]);
+
+    // Clear out the buffer
+    for (unsigned int i = 0; i < N; ++i)
+        output[i] = 0;
 
     //
     // And run the serial implementation 3 times, again reporting the
@@ -56,6 +69,10 @@ int main() {
     printf("[sqrt serial]:\t\t[%.3f] ms\n", minSerial * 1000);
 
     verifyResult(N, output, gold);
+
+    // Clear out the buffer
+    for (unsigned int i = 0; i < N; ++i)
+        output[i] = 0;
 
     //
     // Compute the image using the ispc implementation; report the minimum
